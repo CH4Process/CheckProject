@@ -47,28 +47,36 @@ public class CheckMain {
 		if (vpnIsRunning) {
 			System.out.println("le tunnel VPN est actif");
 			// Si processus VPN actif, vérifier la connexion : envoyer signal test et attendre la réponse
-			// Utilisation de l'objet socket comme pour le test de connection à google ? 
-			// avec en parmaètre l'adresse du pc serveur
-			// ...
 			// 		Si ok, fin du test
+			Socket socketInt = new Socket();
+			InetSocketAddress addressInt = new InetSocketAddress("ch4pcsup.ddns.net",1197);  
+			try {
+				socketInt.connect(addressInt,2000);
+				System.out.println("connexion à CH4pcsup via VPN réussie");
 			//		Si KO :
-			//			SI serveur à retourner un anomalie ?
-			//			SINON : test connexion :
-						Socket socket = new Socket();
-						InetSocketAddress address = new InetSocketAddress("www.google.com",80);  
-						try {
-							socket.connect(address,2000);
-							System.out.println("connexion à www.google.fr réussi");
-							//test de connexion OK --> Le problème vient du serveur ou du logiciel VPN
-							// arret relance du processus
-						} catch (Exception e) {
-							System.out.println("échec de connexion à www.google.fr");
-							// test de connexion KO --> connexion internet perdue
-							// redemarre dongle USB ?
-						} finally {
-							try {socket.close();}
-							catch (Exception e) {}
-						}
+			} catch (Exception eInt) {
+				System.out.println("échec de connexion à CH4pcsup via VPN");
+			//		SI serveur à retourner un anomalie spécifique ?
+			//		SINON : test connexion :
+				Socket socketExt = new Socket();
+				InetSocketAddress addressExt = new InetSocketAddress("www.google.com",80);  
+				try {
+					socketExt.connect(addressExt,2000);
+					System.out.println("connexion à www.google.fr réussi");
+					//test de connexion OK --> Le problème vient du serveur ou du logiciel VPN
+					// arret relance du processus
+				} catch (Exception eExt) {
+					System.out.println("échec de connexion à www.google.fr");
+					// test de connexion KO --> connexion internet perdue
+					// redemarre dongle USB ?
+				} finally {
+					try {socketExt.close();}
+					catch (Exception eExt) {}
+				}
+			} finally {
+				try {socketInt.close();}
+				catch (Exception eInt) {}
+			}
 		}
 		else {
 			// exec: Executes the specified string command in a separate process.
