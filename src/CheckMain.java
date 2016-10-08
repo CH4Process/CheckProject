@@ -8,7 +8,8 @@ import java.util.ArrayList;
 public class CheckMain {
 	static java.lang.Process p;
 	static ArrayList processList = new ArrayList();
-	static boolean vpnIsRunning;
+	static String processCible = "notepad.exe";
+	static boolean processIsRunning;
 
 	public static void main(String[] args) throws IOException {
 	//	ArrayList processList = new ArrayList();
@@ -21,8 +22,8 @@ public class CheckMain {
 		
 		isProcessRunning();
 		
-		if (vpnIsRunning) {
-			System.out.println("le tunnel VPN est actif");
+		if (processIsRunning) {
+			System.out.println("le processus est actif");
 			// Si processus VPN actif, vérifier la connexion : envoyer signal test et attendre la réponse
 			// 		Si ok, fin du test
 			pingInternalServer();
@@ -67,9 +68,10 @@ public class CheckMain {
 		}
 	}
 	private static boolean isProcessRunning (){
-		String processCible = "notepad.exe";
-		// controle que le process processCible fait bien partie de la liste
-		return vpnIsRunning = processList.contains(processCible);		
+	//	String processCible = "notepad.exe";
+	//	String processCible = "VPN.exe";
+	// controle que le process processCible fait bien partie de la liste
+		return processIsRunning = processList.contains(processCible);		
 	}
 	private static void pingInternalServer(){
 		Socket socketInt = new Socket();
@@ -93,7 +95,7 @@ public class CheckMain {
 		InetSocketAddress addressExt = new InetSocketAddress("www.google.com",80);  
 		try {
 			socketExt.connect(addressExt,2000);
-			System.out.println("connexion à www.google.fr réussi");
+			System.out.println("connexion à www.google.fr réussie");
 			//test de connexion OK --> Le problème vient du serveur ou du logiciel VPN
 			// arret relance du processus
 		} catch (Exception eExt) {
@@ -106,21 +108,24 @@ public class CheckMain {
 		}
 	}
 	private static void restartProcess(){
-		int nbreMaxRestart = 0;
-		while (!vpnIsRunning && nbreMaxRestart < 5) {
-			nbreMaxRestart ++;
+		int nbreRestart = 0;
+		int nbreMaxRestart = 5;
+		while (!processIsRunning && nbreRestart < nbreMaxRestart) {
+			nbreRestart ++;
 			try {
 				p = Runtime.getRuntime().exec("notepad.exe");
+				getOnProcessList();
+				isProcessRunning();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		} 
-		if (nbreMaxRestart >= 5) {
+		if (nbreRestart >= nbreMaxRestart) {
 			System.out.println("Nombre maximum de tentatvive de redémarrage du processus atteint !!!");
 		}
 		else {
-			System.out.println("Le nombre de tentative de redémarrage du processus est de : "+nbreMaxRestart);
+			System.out.println("Le nombre de tentative de redémarrage du processus est de : "+nbreRestart);
 		}
 	}
 }
