@@ -7,22 +7,15 @@ import java.util.ArrayList;
  
 public class CheckMain {
 	static java.lang.Process p;
-	static ArrayList processList = new ArrayList();
-	//static String [] processList = new String[processListSize];
-	//static int processListSize = 100;
 	static String processCible = "notepad.exe";
+//	String processCible = "VPN.exe";
 	static boolean processIsRunning;
 	static int nbreRestart = 0;
 	static int nbreMaxRestart = 3;
 
 	public static void main(String[] args) throws IOException {
-	
-		processList = getOnProcessList();
 
-		// Affichage de l'ensemble des processu récupérés
-		System.out.println("main : contenu de processList : " + processList);
-		
-		isProcessRunning(processCible);
+		processIsRunning = isProcessRunning(processCible);
 		
 		if (processIsRunning) {
 			System.out.println("main : le processus est actif");
@@ -63,13 +56,10 @@ public class CheckMain {
 			// Process p = Runtime.getRuntime().exec("ps -few");
 			BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			while ((process = input.readLine()) != null) {
-				//System.out.println("Processus : " + process); 	// <-- Print all Process here line
-																// by line
 				process = process.replaceAll(carASup,"");
 				// processDetail : tableau à une dimension qui recoit la chaine de caractère process séparée selon le caractère ','
 				processDetail = process.split(",");
 				// nomP : nom du processus en position 0 du tableau process detail
-				//System.out.println("getOnProcessList / Nom du processus : " + processDetail[nomP]);
 				//processList : Array list qui regroupe l'ensemble des nomP
 				processListTemp.add(processDetail[nomP]);
 			}
@@ -77,16 +67,16 @@ public class CheckMain {
 		} catch (Exception err) {
 			err.printStackTrace();
 		}
-		System.out.println("getOnProcessList :  processListTemp = "+processListTemp);
 		return processListTemp;
 	}
 	private static boolean isProcessRunning (String processCibleTemp){
-	//	String processCible = "notepad.exe";
-	//	String processCible = "VPN.exe";
-	// controle que le process processCible fait bien partie de la liste
+		ArrayList processList = new ArrayList();
+		processList = getOnProcessList();
+		// Affichage de l'ensemble des processu récupérés
+		System.out.println("isProcessRunning : contenu de processList : " + processList);
+        // conntrole que le process processCible fait bien partie de la liste
 		System.out.println("isProcessRunning : processCibleTemp = "+processCibleTemp);
-		System.out.println("isProcessRunning : processList = "+processList);
-		return processIsRunning = processList.contains(processCibleTemp);		
+		return processList.contains(processCibleTemp);		
 	}
 	private static void pingInternalServer() throws Exception {
 		Socket socketInt = new Socket();
@@ -131,17 +121,12 @@ public class CheckMain {
 		}
 	}
 	private static void restartProcess(){
-		//int nbreRestart = 0;
-		//int nbreMaxRestart = 5;
 		while (!processIsRunning && nbreRestart < nbreMaxRestart) {
 			nbreRestart ++;
 			System.out.println("restartProcess / tentative n° : "+nbreRestart);
 			try {
 				p = Runtime.getRuntime().exec("notepad.exe");
-				getOnProcessList();
-				System.out.println("Restart : processList : "+processList);
-				System.out.println("Restart : processus cible : "+processCible);
-				isProcessRunning(processCible);
+				processIsRunning = isProcessRunning(processCible);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
