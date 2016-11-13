@@ -3,65 +3,100 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
  
 public class CheckMainNew {
 	static java.lang.Process p;
 	static String processCible = "notepad.exe";
-//	static String processCible = "VPN.exe";
 	static boolean processIsRunning;
+	static boolean internalServer;
+	static boolean externalServer;
 	static int nbreRestart = 0;
 	static int nbreMaxRestart = 3;
+	static final String KILL = "taskkill /IM ";
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) {
 
-		int i = 0;
+		int compteurTraitemet = 0;
 		while (true) {
-			i++;
+			compteurTraitemet++;
 			System.out.println("-----------------------------");
-			System.out.println("Boucle de traitement N° : "+i);
+			long debut = System.currentTimeMillis();
+			System.out.println("Boucle de traitement N° : "+compteurTraitemet);
+			System.out.println("Debut du traitement : "+ getDateHeure());
 		
 			checkMain();
 			
 			try {
+				System.out.println("Fin du traitement : "+ getDateHeure());
+				long fin = System.currentTimeMillis();
+				long delta = fin - debut;
+				System.out.println("Durée du traitement : "+ delta + "ms");
 				System.out.println("-----------------------------");
-				Thread.sleep(5000);
+				Thread.sleep(10000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 	}
+	private static String getDateHeure(){
+		Date date = new Date();
+		SimpleDateFormat formatDate = new SimpleDateFormat("E yyyy.MM.dd 'at' hh:mm:ss:SSS");
+		return formatDate.format(date);
+	}
 	private static void checkMain () {
-		try {
-			pingInternalServer();
+		pingInternalServer();
 		//		Si KO :
-		} catch (Exception eInt) {
+		if (!internalServer) {
 			System.out.println("main : échec de connexion à CH4pcsup via VPN");
-        //		SI serveur à retourner un anomalie spécifique ?
-	   //		SINON : test connexion :
-			try {
-				pingExternalServer();
+			pingExternalServer();
+			if (externalServer) {
 				processIsRunning = isProcessRunning(processCible);
 				if (processIsRunning) {
-					System.out.println("Processus actif. Arret / relance");
-					p.destroy();
-					p = Runtime.getRuntime().exec("notepad.exe");
-					pingExternalServer();					
+					killRestartProcess();
 				} else {
-					System.out.println("Processus inactif. relance");
 					restartProcess();
-					pingExternalServer();
 				}
-			} catch (Exception e) {
-				System.out.println("main : échec de connexion à www.google.fr");
-				pingExternalServer();
-				// TODO: handle exception
+			}else {
+				System.out.println("main : échec de connexion à www.google.fr2");
+				nbreRestart = 0;
+				while (!externalServer && nbreRestart < nbreMaxRestart) {
+					nbreRestart ++;
+					pingExternalServer();
+					if (!externalServer) {
+						try {
+							Thread.sleep(5000);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}	
+					}
+				}
+				if (externalServer) {
+					nbreRestart = 0;
+					while (!internalServer && nbreRestart < nbreMaxRestart) {
+						nbreRestart ++;
+						pingInternalServer();
+						if (!internalServer) {
+							try {
+								Thread.sleep(5000);
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}	
+						}
+					}
+				}
 			}
-		} 
+		} else {
+			System.out.println("main : connexion à CH4pcsup via VPN réussie");
+
+		}
 	}
 	private static ArrayList getOnProcessList(){
-	//	java.lang.Process p;
 		ArrayList processListTemp = new ArrayList();
 		String carASup = "\"";
 		String processDetail [];
@@ -99,31 +134,32 @@ public class CheckMainNew {
 		System.out.println("isProcessRunning : processCibleTemp = "+processCibleTemp);
 		return processList.contains(processCibleTemp);		
 	}
-	private static void pingInternalServer() throws Exception {
+	/*private static void pingInternalServer() throws Exception {
 		Socket socketInt = new Socket();
 		InetSocketAddress addressInt = new InetSocketAddress("ch4pcsup.ddns.net",1197);  
 		socketInt.connect(addressInt,2000);
 		System.out.println("connexion à CH4pcsup via VPN réussie");
 		try {socketInt.close();}
 		catch (Exception eInt) {}
-	}
-/*	private static void pingInternalServer() {
+	}*/
+	private static void pingInternalServer() {
 		Socket socketInt = new Socket();
 		InetSocketAddress addressInt = new InetSocketAddress("ch4pcsup.ddns.net",1197);  
 		try {
 			socketInt.connect(addressInt,2000);
+			internalServer = true;
 			System.out.println("connexion à CH4pcsup via VPN réussie");
 		//		Si KO :
 		} catch (Exception eInt) {
 			System.out.println("échec de connexion à CH4pcsup via VPN");
+			internalServer = false;
 		//		SI serveur à retourner un anomalie spécifique ?
 		//		SINON : test connexion :
-			pingExternalServer();
 		} finally {
 			try {socketInt.close();}
 			catch (Exception eInt) {}
 		}
-	}*/
+	}
 	/*private static void pingExternalServer() throws Exception {
 		Socket socketExt = new Socket();
 		InetSocketAddress addressExt = new InetSocketAddress("www.google.com",80);  
@@ -137,30 +173,65 @@ public class CheckMainNew {
 		InetSocketAddress addressExt = new InetSocketAddress("www.google.com",80);  
 		try {
 			socketExt.connect(addressExt,2000);
+			externalServer = true;
 			System.out.println("connexion à www.google.fr réussie");
-			//test de connexion OK --> Le problème vient du serveur ou du logiciel VPN
-			// arret relance du processus ?
 		} catch (Exception eExt) {
-			System.out.println("échec de connexion à www.google.fr");
-			// test de connexion KO --> connexion internet perdue
-			// redemarre dongle USB ?
+			System.out.println("échec de connexion à www.google.fr1");
+			externalServer = false;
 		} finally {
 			try {socketExt.close();}
 			catch (Exception eExt) {}
 		}
 	}
 	private static void restartProcess(){
+		nbreRestart = 0;
 		while (!processIsRunning && nbreRestart < nbreMaxRestart) {
 			nbreRestart ++;
 			System.out.println("restartProcess / tentative n° : "+nbreRestart);
 			try {
-				p = Runtime.getRuntime().exec("notepad.exe");
-				processIsRunning = isProcessRunning(processCible);
+				p = Runtime.getRuntime().exec(processCible);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			processIsRunning = isProcessRunning(processCible);
+			pingInternalServer();
 		} 
+		controleNbreRestart(nbreRestart);
+	}
+	private static void killRestartProcess(){
+		nbreRestart = 0;
+		while (!internalServer && nbreRestart < nbreMaxRestart) {
+			nbreRestart ++;
+			System.out.println("Processus actif. Arret / relance");
+			processKill(processCible);
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			System.out.println("On relance le processus");
+			try {
+				p = Runtime.getRuntime().exec(processCible);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			pingInternalServer();
+		}
+		controleNbreRestart(nbreRestart);
+	}
+	private static void processKill (String processCible){
+		try {
+			System.out.println("processKill : on tue le processus : "+processCible);
+			System.out.println("commande : " +KILL+processCible);
+			Runtime.getRuntime().exec(KILL + processCible);
+		} catch (Exception e) {
+			System.out.println("processKill : problème lors du kill : "+e.getMessage());
+		}
+	}
+	private static void controleNbreRestart (int nbreRestart){
 		if (nbreRestart >= nbreMaxRestart) {
 			System.out.println("Nombre maximum de tentatvive de redémarrage du processus atteint !!!");
 		}
